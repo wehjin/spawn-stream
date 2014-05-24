@@ -13,7 +13,7 @@ module.exports = SpawnStream;
 
 function SpawnStream(command, commandArguments, options) {
     if (!(this instanceof SpawnStream))
-        return new SpawnStream(command, arguments);
+        return new SpawnStream(command, commandArguments, options);
 
     options = options || {};
     this.options = options;

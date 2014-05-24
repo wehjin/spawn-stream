@@ -11,13 +11,13 @@ var fs = require('fs');
 
 util.inherits(SpawnStream, Duplex);
 
-function SpawnStream(cmd, arguments, options) {
+function SpawnStream(command, arguments, options) {
     if (!(this instanceof SpawnStream))
-        return new SpawnStream(cmd, arguments);
+        return new SpawnStream(command, arguments);
 
     var spawnOptions = (options && options['spawn']) ? options['spawn'] : {};
     spawnOptions.stdio = ['pipe', 'pipe', 'ignore'];
-    var child = spawn(cmd, arguments, spawnOptions);
+    var child = spawn(command, arguments, spawnOptions);
 
     var streamOptions = (options && options['stream']) ? options['stream'] : {};
     this._reader = new PassThrough(streamOptions);

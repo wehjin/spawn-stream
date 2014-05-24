@@ -15,13 +15,14 @@ function SpawnStream(cmd, arguments, options) {
     if (!(this instanceof SpawnStream))
         return new SpawnStream(cmd, arguments);
 
-    var child = spawn(cmd, arguments, {
-        stdio: ['pipe', 'pipe', 'ignore']
-    });
+    var spawnOptions = (options && options['spawn']) ? options['spawn'] : {};
+    spawnOptions.stdio = ['pipe', 'pipe', 'ignore'];
+    var child = spawn(cmd, arguments, spawnOptions);
 
-    this._reader = new PassThrough(options);
-    this._writer = new PassThrough(options);
-    Duplex.call(this, options);
+    var streamOptions = (options && options['stream']) ? options['stream'] : {};
+    this._reader = new PassThrough(streamOptions);
+    this._writer = new PassThrough(streamOptions);
+    Duplex.call(this, streamOptions);
 
     this.connectPassThroughError();
     this.connectChild(child);

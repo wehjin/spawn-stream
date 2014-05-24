@@ -1,7 +1,7 @@
 {
     "name": "spawn-stream",
     "version": "1.0.0",
-    "description": "Construct a readable/writable stream from a spawned child process.",
+    "description": "Use a child process to transform a stream.",
     "main": "index.js",
     "scripts": {
         "test": "node_modules/mocha/bin/mocha"
@@ -16,5 +16,9 @@
     "devDependencies": {
         "chai": "^1.9.1",
         "mocha": "^1.19.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:wehjin/spawn-stream.git"
     }
 }

@@ -1,7 +1,7 @@
 spawn-stream
 ============
 
-Transform a stream by through a child process. 
+Use a child process to transform a node-js stream. 
 
     var SpawnStream = require('spawn-stream');
     

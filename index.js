@@ -7,9 +7,10 @@ var stream = require('stream');
 var Duplex = stream.Duplex;
 var PassThrough = stream.PassThrough;
 var spawn = require('child_process').spawn;
-var fs = require('fs');
 
 util.inherits(SpawnStream, Duplex);
+
+module.exports = SpawnStream;
 
 function SpawnStream(command, arguments, options) {
     if (!(this instanceof SpawnStream))
@@ -149,21 +150,3 @@ SpawnStream.prototype.end = function (chunk, encoding, callback) {
 SpawnStream.prototype.write = function (chunk, encoding, callback) {
     return this._writer.write(chunk, encoding, callback);
 };
-
-
-var arguments = [
-    '-i', '-',
-    '-y',
-    '-strict', '-2',
-    '-acodec', 'aac',
-    '-vcodec', 'h264',
-    '-movflags', 'frag_keyframe',
-    '-f', 'mp4',
-    'pipe:1'
-];
-
-var cmd = 'ffmpeg';
-var h264Stream = new SpawnStream(cmd, arguments);
-
-var outputStream = fs.createWriteStream('out_final.mp4', 'w');
-fs.createReadStream('test_original.mp4').pipe(h264Stream).pipe(outputStream);

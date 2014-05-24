@@ -10,7 +10,7 @@ describe("SpawnStream", function () {
     it("should write and emit data", function (done) {
 
         var output = "";
-        var stream = new SpawnStream('cat');
+        var stream = new SpawnStream('cat', null, {debug: true});
 
         /*
          fs.createReadStream('tests/testdata1.txt')

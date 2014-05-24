@@ -1,6 +1,6 @@
 {
     "name": "spawn-stream",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Use a child process to transform a stream.",
     "main": "index.js",
     "scripts": {

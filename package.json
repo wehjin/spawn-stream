@@ -1,0 +1,16 @@
+{
+    "name": "spawn-stream",
+    "version": "0.0.0",
+    "description": "Construct a readable/writable stream from a spawned child process.",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "spawn",
+        "stream",
+        "child_process"
+    ],
+    "author": "Jeffrey Yu",
+    "license": "MIT"
+}

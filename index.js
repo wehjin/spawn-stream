@@ -4,149 +4,75 @@
 
 var util = require('util');
 var stream = require('stream');
-var Duplex = stream.Duplex;
-var PassThrough = stream.PassThrough;
+var Transform = stream.Transform;
 var spawn = require('child_process').spawn;
 
-util.inherits(SpawnStream, Duplex);
+util.inherits(SpawnStream, Transform);
 
 module.exports = SpawnStream;
 
-function SpawnStream(command, arguments, options) {
+function SpawnStream(command, commandArguments, options) {
     if (!(this instanceof SpawnStream))
         return new SpawnStream(command, arguments);
 
+    var streamOptions = (options && options['stream']) ? options['stream'] : {};
+    Transform.call(this, streamOptions);
+
     var spawnOptions = (options && options['spawn']) ? options['spawn'] : {};
     spawnOptions.stdio = ['pipe', 'pipe', 'ignore'];
-    var child = spawn(command, arguments, spawnOptions);
-
-    var streamOptions = (options && options['stream']) ? options['stream'] : {};
-    this._reader = new PassThrough(streamOptions);
-    this._writer = new PassThrough(streamOptions);
-    Duplex.call(this, streamOptions);
-
-    this.connectPassThroughError();
-    this.connectChild(child);
-
-    this._readableState = this._reader._readableState;
-    this._writableState = this._writer._writableState;
-
+    this.command = command;
+    this.commandArguments = commandArguments;
+    this.spawnOptions = spawnOptions;
 }
 
-SpawnStream.prototype.connectPassThroughError = function () {
-    this._reader.on('error', this.emit.bind(this));
-    this._writer.on('error', this.emit.bind(this));
-};
+SpawnStream.prototype._transform = function (chunk, encoding, callback) {
+    if (!this.child) {
+        var transform = this;
+        var child = spawn(this.command, this.commandArguments, this.spawnOptions);
+        this.child = child;
+        this.stdoutDidEnd = false;
 
-SpawnStream.prototype.connectChild = function (child) {
-    child.on('error', this.emit.bind(this));
-    child.stdout.pipe(this._reader);
-    this._writer.pipe(child.stdin);
-    this._reader.read(0);
-    this._writer.read(0);
-    child.stdout.read(0);
-};
+        // When we get data on stdout, push it downstream.  But if we get an end, do
+        // not push it downstream stream yet.  Mark it so that we know it occurred in
+        // _flush.  Pass through any error.
+        child.stdout
+            .on('data', function (data) {
+                transform.push(data);
+            })
+            .on('end', function (data) {
+                if (data) {
+                    transform.push(data);
+                }
+                transform.stdoutDidEnd = true;
+            })
+            .on('error', this.emit.bind(this));
 
-SpawnStream.prototype.getTarget = function (event) {
-    switch (event) {
-        case 'readable':
-        case 'data':
-        case 'end':
-        case 'close':
-            return this._reader;
-        case 'drain':
-        case 'finish':
-        case 'pipe':
-        case 'unpipe':
-            return this._writer;
-        default:
-            return this;
+        // Pass through errors from stdin and the child.
+        child.stdin.on('error', this.emit.bind(this));
+        child.on('error', this.emit.bind(this));
     }
+
+    // Pass data from upstream to the child.
+    this.child.stdin.write(chunk, encoding);
+    callback();
 };
 
-SpawnStream.prototype.on = SpawnStream.prototype.addListener = function (event, listener) {
-    var target = this.getTarget(event);
-    if (target === this) {
-        return Duplex.prototype.on.call(this, event, listener);
+SpawnStream.prototype._flush = function (callback) {
+    var transform = this;
+
+    function onEnd() {
+        transform.child.kill();
+        delete transform.child;
+        callback();
+    }
+
+    if (!this.child) {
+        callback();
+    } else if (this.stdoutDidEnd) {
+        this.child.stdin.end();
+        onEnd();
     } else {
-        target.on(event, listener);
-        return this;
+        this.child.stdin.end();
+        this.child.stdout.once('end', onEnd);
     }
-};
-
-SpawnStream.prototype.once = function (event, listener) {
-    var target = this.getTarget(event);
-    if (target === this) {
-        return Duplex.prototype.once.call(this, event, listener);
-    } else {
-        target.once(event, listener);
-        return this;
-    }
-};
-
-SpawnStream.prototype.removeListener = function (event, listener) {
-    var target = this.getTarget(event);
-    if (target === this) {
-        return Duplex.prototype.removeListener.call(this, event, listener);
-    } else {
-        target.removeListener(event, listener);
-        return this;
-    }
-};
-
-SpawnStream.prototype.removeAllListeners = function (event) {
-    Duplex.prototype.removeListener.call(this, event);
-    if (event) {
-        var target = this.getTarget(event);
-        if (target === this) {
-            return Duplex.prototype.removeAllListeners(event);
-        } else {
-            target.removeAllListeners(event);
-            return this;
-        }
-    } else {
-        Duplex.prototype.removeAllListeners(event);
-        this._reader.removeAllListeners(event);
-        this._writer.removeAllListeners(event);
-        this.connectPassThroughError();
-        return this;
-    }
-};
-
-SpawnStream.prototype.listeners = function (event) {
-    var target = this.getTarget(event);
-    if (target === this) {
-        return Duplex.prototype.listeners.call(this, event);
-    } else {
-        return target.listeners(event);
-    }
-};
-
-SpawnStream.prototype.emit = function (event) {
-    var target = this.getTarget(event);
-    if (target === this) {
-        return Duplex.prototype.emit.apply(this, arguments);
-    } else {
-        return target.emit.apply(target, arguments);
-    }
-};
-
-SpawnStream.prototype.pipe = function (destination, options) {
-    return this._reader.pipe(destination, options);
-};
-
-SpawnStream.prototype.setEncoding = function (encoding) {
-    return this._reader.setEncoding(encoding);
-};
-
-SpawnStream.prototype.read = function (size) {
-    return this._reader.read(size);
-};
-
-SpawnStream.prototype.end = function (chunk, encoding, callback) {
-    return this._writer.end(chunk, encoding, callback);
-};
-
-SpawnStream.prototype.write = function (chunk, encoding, callback) {
-    return this._writer.write(chunk, encoding, callback);
 };

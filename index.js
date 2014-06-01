@@ -64,11 +64,11 @@ SpawnStream.prototype._transform = function (chunk, encoding, callback) {
                 }
                 transform.stdoutDidEnd = true;
             })
-            .on('error', this.emit.bind(this));
+            .on('error', this.emit.bind(this, 'error'));
 
         // Pass through errors from stdin and the child.
-        child.stdin.on('error', this.emit.bind(this));
-        child.on('error', this.emit.bind(this));
+        child.stdin.on('error', this.emit.bind(this, 'error'));
+        child.on('error', this.emit.bind(this, 'error'));
     }
 
     // Pass data from upstream to the child.
